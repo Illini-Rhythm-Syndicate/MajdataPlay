@@ -138,8 +138,14 @@ namespace MajdataPlay.Scenes.TotalResult
             {
                 MajInstances.AudioManager.StopSFX("bgm_dan.mp3");
                 _isExited = true;
-                MajInstances.SceneSwitcher.SwitchScene("List", false);
-                
+                if (CreditManager.IsFreePlay)
+                {
+                    MajInstances.SceneSwitcher.SwitchScene("List", false);
+                    return;
+                }
+                CreditManager.EndSession();
+                CreditManager.MarkReturningFromSession();
+                MajInstances.SceneSwitcher.SwitchScene("Title", false);
             }
         }
         void OnDestroy()

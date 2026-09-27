@@ -143,6 +143,10 @@ namespace MajdataPlay.Scenes.List
             _favoriteAdder.PressToRemoveTime = 0.5f;
 
             InputManager.BindAnyArea(OnAnyInput);
+            if (CreditManager.IsUnlimitedSessionActive)
+            {
+                CreditManager.EndSession();
+            }
         }
         void Start()
         {
@@ -205,6 +209,11 @@ namespace MajdataPlay.Scenes.List
         {
             if (_isExited || !_isInited)
             {
+                return;
+            }
+            if (!CreditManager.CanEnterGame)
+            {
+                ExitToTitle();
                 return;
             }
             _quickSlideJudge.OnUpdate();
@@ -484,8 +493,30 @@ namespace MajdataPlay.Scenes.List
                 MajInstances.AudioManager.PlaySFX(list[(int)_listConfig.SelectedDiff]);
             }
         }
+        void ExitToTitle()
+        {
+            _cts.Cancel();
+            MajInstances.AudioManager.StopSFX("bgm_select.mp3");
+            _pressTime = 0;
+            _isExited = true;
+            CreditManager.MarkReturningFromSession();
+            MajInstances.SceneSwitcher.SwitchScene("Title", false);
+        }
+        bool TryConsumePlayOrExit()
+        {
+            if (CreditManager.TryConsumePlay())
+            {
+                return true;
+            }
+            ExitToTitle();
+            return false;
+        }
         void EnterGame()
         {
+            if (!TryConsumePlayOrExit())
+            {
+                return;
+            }
             _cts.Cancel();
             MajInstances.AudioManager.StopSFX("bgm_select.mp3");
             var list = new string[] { "track_start.wav", "track_start_2.wav", "track_start_3.wav" };
@@ -506,6 +537,10 @@ namespace MajdataPlay.Scenes.List
         }
         void EnterPractice()
         {
+            if (!TryConsumePlayOrExit())
+            {
+                return;
+            }
             _cts.Cancel();
             var levels = new ChartLevel[]
             {
@@ -602,6 +637,11 @@ namespace MajdataPlay.Scenes.List
             }
             else if (danInfo.SongLevels.Length != collection.Count)
             {
+                return;
+            }
+            if (!CreditManager.TryRedeemSession(isUnlimitedSession: true))
+            {
+                ExitToTitle();
                 return;
             }
             MajInstances.AudioManager.StopSFX("bgm_select.mp3");

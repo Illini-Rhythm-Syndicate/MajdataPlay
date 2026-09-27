@@ -352,7 +352,7 @@ namespace MajdataPlay.IO
 
                             KeyCode.Test => MajdataPlay.Platform.Android.IO.KeyCode.Numpad9,
                             KeyCode.SelectP1 => MajdataPlay.Platform.Android.IO.KeyCode.NumpadMultiply,
-                            KeyCode.Service => MajdataPlay.Platform.Android.IO.KeyCode.Numpad7,
+                            KeyCode.Service => MajdataPlay.Platform.Android.IO.KeyCode.V,
                             KeyCode.SelectP2 => MajdataPlay.Platform.Android.IO.KeyCode.Numpad3,
 
                             _ => MajdataPlay.Platform.Android.IO.KeyCode.Unknown

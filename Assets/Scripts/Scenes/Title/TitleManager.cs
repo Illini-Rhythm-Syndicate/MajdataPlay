@@ -42,6 +42,7 @@ namespace MajdataPlay.Scenes.Title
         RectTransform _loadingIndicator = null!;
 
         bool _flag = false;
+        bool _isIdle = false;
 
         readonly CompositeMotionHandle _titleEntranceMotions = new(5);
         MotionHandle _loadingRotationMotion;
@@ -85,6 +86,15 @@ namespace MajdataPlay.Scenes.Title
             MajInstances.AudioManager.PlaySFX("MajdataPlay.wav");
             MajInstances.AudioManager.PlaySFX("bgm_title.mp3");
 
+            if (CreditManager.IsReturningFromSession)
+            {
+                CreditManager.ConsumeReturningFromSession();
+                EnterIdleState();
+                FinishLoadingAnimation();
+                _flag = true;
+                return;
+            }
+
             _echoText.text = $"{"MAJTEXT_LOADING_SCORE_STORAGE".i18n()}...";
             await UniTask.DelayFrame(9);
             var task1 = ScoreManager.InitAsync().AsValueTask();
@@ -124,12 +134,7 @@ namespace MajdataPlay.Scenes.Title
                         }
                         else
                         {
-                            _echoText.text = "MAJTEXT_PRESS_ANY_KEY".i18n();
-                            InputManager.BindAnyArea(OnAreaClick);
-
-                            var list = new string[] { "game_init.wav", "game_init_2.wav", "game_init_3.wav" };
-                            MajInstances.AudioManager.PlaySFX(list[UnityEngine.Random.Range(0, list.Length)]);
-
+                            EnterIdleState();
                         }
                         break;
                     }
@@ -316,6 +321,37 @@ namespace MajdataPlay.Scenes.Title
             graphic.color = color;
         }
 
+        void EnterIdleState()
+        {
+            _isIdle = true;
+            _echoText.text = GetStartPrompt();
+            InputManager.BindAnyArea(OnAreaClick);
+            var list = new string[] { "game_init.wav", "game_init_2.wav", "game_init_3.wav" };
+            MajInstances.AudioManager.PlaySFX(list[UnityEngine.Random.Range(0, list.Length)]);
+        }
+
+        string GetStartPrompt()
+        {
+            if (CreditManager.IsFreePlay || CreditManager.Credits > 0)
+            {
+                return "MAJTEXT_PRESS_ANY_KEY".i18n();
+            }
+            return "MAJTEXT_INSERT_CREDIT".i18n();
+        }
+
+        void Update()
+        {
+            if (!_isIdle)
+            {
+                return;
+            }
+            var prompt = GetStartPrompt();
+            if (_echoText.text != prompt)
+            {
+                _echoText.text = prompt;
+            }
+        }
+
         private void OnAreaClick(object sender, InputEventArgs e)
         {
             if (e.IsDown)
@@ -329,6 +365,8 @@ namespace MajdataPlay.Scenes.Title
                         {
                             EnterTestMode();
                         }
+                        return;
+                    case ButtonZone.Service:
                         return;
                 }
                 NextScene();
@@ -361,7 +399,13 @@ namespace MajdataPlay.Scenes.Title
         }
         void NextScene()
         {
+            if (!CreditManager.TryRedeemSession())
+            {
+                _echoText.text = "MAJTEXT_INSERT_CREDIT".i18n();
+                return;
+            }
             InputManager.UnbindAnyArea(OnAreaClick);
+            _isIdle = false;
             _flag = false;
             MajInstances.AudioManager.StopSFX("bgm_title.mp3");
             MajInstances.AudioManager.StopSFX("MajdataPlay.wav");

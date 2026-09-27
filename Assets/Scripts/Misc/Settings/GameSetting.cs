@@ -16,6 +16,8 @@ namespace MajdataPlay.Settings
         
         public JudgeOptions Judge { get; init; } = new();
         
+        public ArcadeOptions Arcade { get; init; } = new();
+        
         public DisplayOptions Display { get; init; } = new();
         
         public SoundOptions Audio { get; init; } = new();
@@ -111,6 +113,15 @@ namespace MajdataPlay.Settings
         public float TouchPanelOffset { get; set; } = 0f;
         
         public JudgeModeOption Mode { get; set; } = JudgeModeOption.Modern;
+    }
+    
+    public class ArcadeOptions
+    {
+        public bool FreePlay { get; set; } = false;
+        
+        [Range("1", "9", HasMax = true, HasMin = true)]
+        [Step("1")]
+        public int PlaysPerCredit { get; set; } = 3;
     }
     
     public class DisplayOptions

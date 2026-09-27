@@ -107,6 +107,8 @@ namespace MajdataPlay
             MajInstances.RuntimeInfoDisplayer.Init();
             MajInstances.AudioManager.Init();
             Localization.Init();
+            CreditManager.Init();
+            CreditDisplayer.Create();
 #if UNITY_STANDALONE_WIN
             _timer = BuiltInTimeProvider.Winapi;
 #else

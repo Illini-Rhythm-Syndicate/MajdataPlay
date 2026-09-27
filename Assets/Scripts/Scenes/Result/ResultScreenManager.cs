@@ -574,8 +574,18 @@ namespace MajdataPlay.Scenes.Result
                 }
                 _isExited = true;
                 MajInstances.AudioManager.StopSFX("bgm_result.mp3");
-                MajInstances.SceneSwitcher.SwitchScene("List", false);
+                ExitToNextScene();
             }
+        }
+        void ExitToNextScene()
+        {
+            if (CreditManager.IsSessionExhausted)
+            {
+                CreditManager.MarkReturningFromSession();
+                MajInstances.SceneSwitcher.SwitchScene("Title", false);
+                return;
+            }
+            MajInstances.SceneSwitcher.SwitchScene("List", false);
         }
         void OnDestroy()
         {

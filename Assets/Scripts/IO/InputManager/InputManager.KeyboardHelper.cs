@@ -53,7 +53,7 @@ namespace MajdataPlay.IO
                     KeyCode.B8 => Win32API.RawKey.Q,
                     KeyCode.Test => Win32API.RawKey.Numpad9,
                     KeyCode.SelectP1 => Win32API.RawKey.Multiply,
-                    KeyCode.Service => Win32API.RawKey.Numpad7,
+                    KeyCode.Service => Win32API.RawKey.V,
                     KeyCode.SelectP2 => Win32API.RawKey.Numpad3,
                     _ => throw new ArgumentOutOfRangeException(nameof(keyCode)),
                 };
@@ -73,7 +73,7 @@ namespace MajdataPlay.IO
                     KeyCode.B8 => UnityEngine.InputSystem.Key.Q,
                     KeyCode.Test => UnityEngine.InputSystem.Key.Numpad9,
                     KeyCode.SelectP1 => UnityEngine.InputSystem.Key.NumpadMultiply,
-                    KeyCode.Service => UnityEngine.InputSystem.Key.Numpad7,
+                    KeyCode.Service => UnityEngine.InputSystem.Key.V,
                     KeyCode.SelectP2 => UnityEngine.InputSystem.Key.Numpad3,
                     _ => throw new ArgumentOutOfRangeException(nameof(keyCode)),
                 };
@@ -93,7 +93,7 @@ namespace MajdataPlay.IO
                     KeyCode.B8 => GCKeyCode.KeyQ,
                     KeyCode.Test => GCKeyCode.Keypad9,
                     KeyCode.SelectP1 => GCKeyCode.KeypadAsterisk,
-                    KeyCode.Service => GCKeyCode.Keypad7,
+                    KeyCode.Service => GCKeyCode.KeyV,
                     KeyCode.SelectP2 => GCKeyCode.Keypad3,
                     _ => throw new ArgumentOutOfRangeException(nameof(keyCode)),
                 };

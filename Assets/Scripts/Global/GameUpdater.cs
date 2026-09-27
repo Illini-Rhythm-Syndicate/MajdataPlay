@@ -77,6 +77,7 @@ namespace MajdataPlay
             // Time Update
             MajTimeline.OnPreUpdate();
             InputManager.OnPreUpdate();
+            CreditManager.OnPreUpdate();
             _dummyTouchPanelRenderer.OnPreUpdate();
             try
             {
