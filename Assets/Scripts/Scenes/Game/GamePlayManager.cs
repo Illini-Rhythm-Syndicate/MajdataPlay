@@ -1839,6 +1839,11 @@ namespace MajdataPlay.Scenes.Game
         }
         async UniTask ExitToScene(string sceneName, int delayMiliseconds = 0, bool delayBeforeFade = false)
         {
+            if (sceneName == "List" && !CreditManager.ConsumeTrack())
+            {
+                CreditManager.MarkReturningFromSession();
+                sceneName = "Title";
+            }
             var sceneSwitcher = MajInstances.SceneSwitcher;
             if (delayBeforeFade && delayMiliseconds > 0)
             {

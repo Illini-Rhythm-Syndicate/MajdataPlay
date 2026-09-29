@@ -211,7 +211,7 @@ namespace MajdataPlay.Scenes.List
             {
                 return;
             }
-            if (!CreditManager.CanEnterGame)
+            if (!CreditManager.CanStartTrack)
             {
                 ExitToTitle();
                 return;
@@ -502,9 +502,9 @@ namespace MajdataPlay.Scenes.List
             CreditManager.MarkReturningFromSession();
             MajInstances.SceneSwitcher.SwitchScene("Title", false);
         }
-        bool TryConsumePlayOrExit()
+        bool CanStartTrackOrExit()
         {
-            if (CreditManager.TryConsumePlay())
+            if (CreditManager.CanStartTrack)
             {
                 return true;
             }
@@ -513,7 +513,7 @@ namespace MajdataPlay.Scenes.List
         }
         void EnterGame()
         {
-            if (!TryConsumePlayOrExit())
+            if (!CanStartTrackOrExit())
             {
                 return;
             }
@@ -537,7 +537,7 @@ namespace MajdataPlay.Scenes.List
         }
         void EnterPractice()
         {
-            if (!TryConsumePlayOrExit())
+            if (!CanStartTrackOrExit())
             {
                 return;
             }

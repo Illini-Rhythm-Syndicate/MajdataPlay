@@ -3,7 +3,7 @@ using MajdataPlay.i18n;
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 #nullable enable
 namespace MajdataPlay
@@ -11,15 +11,19 @@ namespace MajdataPlay
     internal sealed class CreditDisplayer : MonoBehaviour
     {
         const string CREDIT_LABEL_I18N_KEY = "MAJTEXT_CREDITS";
-        const float REFERENCE_HEIGHT = 1920f;
-        const float FONT_SIZE = 56f;
-        const float MARGIN = 48f;
-        const float WIDTH_RATIO = 0.6f;
-        const int SORTING_ORDER = short.MaxValue;
+        const string TRACK_LABEL_I18N_KEY = "MAJTEXT_TRACK";
+        const string FREE_PLAY_I18N_KEY = "MAJTEXT_FREE_PLAY";
+        const string SUB_DISPLAY_NAME = "Sub_Display";
+        const float FONT_HEIGHT_RATIO = 0.055f;
+        const float TOP_MARGIN = 8f;
+        const float RECT_WIDTH_RATIO = 0.9f;
+        const float OUTLINE_WIDTH = 0.2f;
+        static readonly int OUTLINE_WIDTH_ID = Shader.PropertyToID("Outline Width");
+        static readonly int OUTLINE_COLOR_ID = Shader.PropertyToID("Outline Color");
 
-        RectTransform _canvasRect = null!;
-        RectTransform _textRect = null!;
         TextMeshProUGUI _creditText = null!;
+        RectTransform? _attachedTo;
+        Material? _outlineMaterial;
 
         internal static CreditDisplayer Create()
         {
@@ -31,80 +35,164 @@ namespace MajdataPlay
 
         void Awake()
         {
-            _canvasRect = (RectTransform)transform;
-            _canvasRect.anchorMin = Vector2.zero;
-            _canvasRect.anchorMax = Vector2.one;
-            _canvasRect.offsetMin = Vector2.zero;
-            _canvasRect.offsetMax = Vector2.zero;
-
-            var canvas = gameObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = SORTING_ORDER;
-
-            var scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            scaler.scaleFactor = 1f;
-
-            _creditText = CreateText(_canvasRect);
-            _textRect = _creditText.rectTransform;
-
-            CreditManager.StateChanged += Refresh;
+            _outlineMaterial = CreateOutlineMaterial();
+            CreditManager.StateChanged += OnStateChanged;
             Localization.OnLanguageChanged += OnLanguageChanged;
         }
 
+        void OnStateChanged(object? sender, EventArgs e) => Refresh();
+
+        void OnLanguageChanged(object? sender, Language language) => Refresh();
+
         void OnDestroy()
         {
-            CreditManager.StateChanged -= Refresh;
+            CreditManager.StateChanged -= OnStateChanged;
             Localization.OnLanguageChanged -= OnLanguageChanged;
+            DestroyText();
+            if (_outlineMaterial != null)
+            {
+                Destroy(_outlineMaterial);
+            }
         }
 
-        void Start() => Refresh(null, EventArgs.Empty);
+        void Start() => AttachIfNeeded();
 
-        void LateUpdate() => Layout();
+        void LateUpdate() => AttachIfNeeded();
 
-        void OnLanguageChanged(object? sender, Language language) => Refresh(sender, EventArgs.Empty);
-
-        void Refresh(object? sender, EventArgs e)
+        void AttachIfNeeded()
         {
-            if (_creditText is null)
+            var subDisplay = FindSubDisplay();
+            if (subDisplay == null)
             {
                 return;
             }
-            var label = CREDIT_LABEL_I18N_KEY.i18n();
-            _creditText.text = label + ": " + CreditManager.Credits;
-        }
-
-        void Layout()
-        {
-            var height = _canvasRect.rect.height;
-            if (height <= 0f)
+            var isAttached = _creditText != null
+                          && _attachedTo == subDisplay
+                          && _creditText.transform.parent == subDisplay;
+            if (isAttached)
             {
                 return;
             }
-            var scale = height / REFERENCE_HEIGHT;
-            var margin = MARGIN * scale;
-            _creditText.fontSize = FONT_SIZE * scale;
-            _textRect.anchoredPosition = new Vector2(-margin, -margin);
-            _textRect.sizeDelta = new Vector2(_canvasRect.rect.width * WIDTH_RATIO, FONT_SIZE * scale * 2f);
+            DestroyText();
+            _creditText = CreateText(subDisplay);
+            _attachedTo = subDisplay;
+            Refresh();
         }
 
-        static TextMeshProUGUI CreateText(Transform parent)
+        void DestroyText()
         {
+            if (_creditText != null)
+            {
+                Destroy(_creditText.gameObject);
+                _creditText = null!;
+            }
+            _attachedTo = null;
+        }
+
+        void Refresh()
+        {
+            if (_creditText == null)
+            {
+                return;
+            }
+            if (CreditManager.IsFreePlay)
+            {
+                _creditText.text = FREE_PLAY_I18N_KEY.i18n();
+                return;
+            }
+            var creditLabel = CREDIT_LABEL_I18N_KEY.i18n();
+            if (!CreditManager.IsSessionActive)
+            {
+                _creditText.text = $"{creditLabel}: {CreditManager.Credits}";
+                return;
+            }
+            var trackLabel = TRACK_LABEL_I18N_KEY.i18n();
+            _creditText.text = $"{creditLabel}: {CreditManager.Credits}   {trackLabel} {CreditManager.CurrentTrack}/{CreditManager.PlaysPerCredit}";
+        }
+
+        static RectTransform? FindSubDisplay()
+        {
+            var roots = SceneManager.GetActiveScene().GetRootGameObjects();
+            foreach (var root in roots)
+            {
+                if (!root.activeInHierarchy)
+                {
+                    continue;
+                }
+                var found = FindDescendant(root.transform);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        static RectTransform? FindDescendant(Transform parent)
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+            if (parent.name == SUB_DISPLAY_NAME && parent is RectTransform rect && parent.gameObject.activeInHierarchy)
+            {
+                return rect;
+            }
+            var childCount = parent.childCount;
+            for (int i = 0; i < childCount; i++)
+            {
+                var found = FindDescendant(parent.GetChild(i));
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        TextMeshProUGUI CreateText(RectTransform parent)
+        {
+            var height = parent.rect.height;
+            var fontSize = height * FONT_HEIGHT_RATIO;
+
             var textObject = new GameObject("CreditText", typeof(RectTransform));
             textObject.transform.SetParent(parent, false);
             var text = textObject.AddComponent<TextMeshProUGUI>();
             text.font = GameRuntime.Instance.LocalizedFonts.Default;
-            text.alignment = TextAlignmentOptions.TopRight;
+            if (_outlineMaterial != null)
+            {
+                text.fontSharedMaterial = _outlineMaterial;
+            }
+            text.fontSize = fontSize;
+            text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
             text.raycastTarget = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
             text.overflowMode = TextOverflowModes.Overflow;
 
-            var rectTransform = text.rectTransform;
-            rectTransform.anchorMin = new Vector2(1f, 1f);
-            rectTransform.anchorMax = new Vector2(1f, 1f);
-            rectTransform.pivot = new Vector2(1f, 1f);
+            var rect = text.rectTransform;
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -TOP_MARGIN);
+            rect.sizeDelta = new Vector2(parent.rect.width * RECT_WIDTH_RATIO, fontSize);
+            rect.localScale = Vector3.one;
             return text;
+        }
+
+        static Material? CreateOutlineMaterial()
+        {
+            var font = GameRuntime.Instance.LocalizedFonts.Default;
+            if (font == null)
+            {
+                return null;
+            }
+            var material = Instantiate(font.material);
+            material.name = $"{nameof(CreditDisplayer)}_Outline";
+            material.EnableKeyword("OUTLINE_ON");
+            material.SetFloat(OUTLINE_WIDTH_ID, OUTLINE_WIDTH);
+            material.SetColor(OUTLINE_COLOR_ID, Color.black);
+            return material;
         }
     }
 }

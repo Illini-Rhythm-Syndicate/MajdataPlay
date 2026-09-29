@@ -12,6 +12,7 @@ namespace MajdataPlay
         static int _playsRemaining;
         static bool _isSessionActive;
         static bool _isReturningFromSession;
+        static bool _wasFreePlay;
 
         internal static event EventHandler? StateChanged;
 
@@ -27,11 +28,51 @@ namespace MajdataPlay
 
         internal static bool IsUnlimitedSessionActive => _isSessionActive && _playsRemaining >= UNLIMITED_PLAYS;
 
+        internal static int CurrentTrack
+        {
+            get
+            {
+                if (!_isSessionActive || _playsRemaining >= UNLIMITED_PLAYS)
+                {
+                    return 0;
+                }
+                return PlaysPerCredit - _playsRemaining + 1;
+            }
+        }
+
         internal static bool IsReturningFromSession => _isReturningFromSession;
 
-        internal static bool CanEnterGame => IsFreePlay || _isSessionActive || _credits > 0;
+        internal static bool CanStartTrack => IsFreePlay || _isSessionActive;
 
-        internal static bool IsSessionExhausted => !IsFreePlay && !_isSessionActive;
+        /// <summary>
+        /// Consumes the track the player just finished or abandoned.
+        /// Returns true when the session continues and the player may return to song select,
+        /// false when the session is over and the player must be returned to the title screen.
+        /// </summary>
+        internal static bool ConsumeTrack()
+        {
+            if (IsFreePlay)
+            {
+                return true;
+            }
+            if (!_isSessionActive)
+            {
+                return false;
+            }
+            if (_playsRemaining >= UNLIMITED_PLAYS)
+            {
+                EndSession();
+                return false;
+            }
+            _playsRemaining--;
+            if (_playsRemaining <= 0)
+            {
+                EndSession();
+                return false;
+            }
+            RaiseStateChanged();
+            return true;
+        }
 
         internal static void Init()
         {
@@ -39,11 +80,22 @@ namespace MajdataPlay
             _playsRemaining = 0;
             _isSessionActive = false;
             _isReturningFromSession = false;
+            _wasFreePlay = IsFreePlay;
         }
 
         internal static void OnPreUpdate()
         {
-            if (InputManager.IsButtonClickedInThisFrame(ButtonZone.Service))
+            var freePlay = IsFreePlay;
+            if (freePlay && !_wasFreePlay)
+            {
+                _credits = 0;
+                _playsRemaining = 0;
+                _isSessionActive = false;
+                RaiseStateChanged();
+            }
+            _wasFreePlay = freePlay;
+
+            if (!freePlay && InputManager.IsButtonClickedInThisFrame(ButtonZone.Service))
             {
                 InsertCredit();
             }
@@ -51,6 +103,10 @@ namespace MajdataPlay
 
         internal static void InsertCredit()
         {
+            if (IsFreePlay)
+            {
+                return;
+            }
             _credits++;
             RaiseStateChanged();
         }
@@ -68,27 +124,6 @@ namespace MajdataPlay
             }
             _credits--;
             BeginSession(isUnlimitedSession);
-            return true;
-        }
-
-        internal static bool TryConsumePlay()
-        {
-            if (IsFreePlay)
-            {
-                return true;
-            }
-            if (!_isSessionActive || _playsRemaining <= 0)
-            {
-                EndSession();
-                return false;
-            }
-            _playsRemaining--;
-            if (_playsRemaining <= 0)
-            {
-                EndSession();
-                return true;
-            }
-            RaiseStateChanged();
             return true;
         }
 

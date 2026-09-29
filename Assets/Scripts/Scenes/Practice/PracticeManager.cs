@@ -94,7 +94,7 @@ namespace MajdataPlay.Scenes.Practice
                 if (string.IsNullOrEmpty(maidata))
                 {
                     await UniTask.SwitchToMainThread();
-                    MajInstances.SceneSwitcher.SwitchScene("List", false);
+                    ReturnToSongSelect();
                     return;
                 }
 
@@ -145,9 +145,19 @@ namespace MajdataPlay.Scenes.Practice
             {
                 _isExited = true;
                 MajEnv.Settings.Mod.PlaybackSpeed = 1;
-                MajInstances.SceneSwitcher.SwitchScene("List", false);
+                ReturnToSongSelect();
                 throw new OperationCanceledException();
             }
+        }
+        void ReturnToSongSelect()
+        {
+            if (CreditManager.ConsumeTrack())
+            {
+                MajInstances.SceneSwitcher.SwitchScene("List", false);
+                return;
+            }
+            CreditManager.MarkReturningFromSession();
+            MajInstances.SceneSwitcher.SwitchScene("Title", false);
         }
         void SensorCheck()
         {

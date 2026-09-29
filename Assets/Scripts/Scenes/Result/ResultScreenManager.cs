@@ -579,13 +579,13 @@ namespace MajdataPlay.Scenes.Result
         }
         void ExitToNextScene()
         {
-            if (CreditManager.IsSessionExhausted)
+            if (CreditManager.ConsumeTrack())
             {
-                CreditManager.MarkReturningFromSession();
-                MajInstances.SceneSwitcher.SwitchScene("Title", false);
+                MajInstances.SceneSwitcher.SwitchScene("List", false);
                 return;
             }
-            MajInstances.SceneSwitcher.SwitchScene("List", false);
+            CreditManager.MarkReturningFromSession();
+            MajInstances.SceneSwitcher.SwitchScene("Title", false);
         }
         void OnDestroy()
         {

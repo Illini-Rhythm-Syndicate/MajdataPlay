@@ -74,7 +74,7 @@ namespace MajdataPlay.Scenes.Title
         {
             PlayTitleEntranceAnimation();
             InitAsync().Forget();
-            CabinetLed.SetAllLight(Color.white);
+            MajInstances.SceneSwitcher.FadeOut();
             if (InputManager.IsTouchPanelConnected)
             {
                 Destroy(GameObject.Find("EventSystem"));
