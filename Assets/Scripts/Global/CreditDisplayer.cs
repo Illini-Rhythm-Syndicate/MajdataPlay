@@ -17,13 +17,11 @@ namespace MajdataPlay
         const float FONT_HEIGHT_RATIO = 0.055f;
         const float TOP_MARGIN = 8f;
         const float RECT_WIDTH_RATIO = 0.9f;
-        const float OUTLINE_WIDTH = 0.2f;
-        static readonly int OUTLINE_WIDTH_ID = Shader.PropertyToID("Outline Width");
-        static readonly int OUTLINE_COLOR_ID = Shader.PropertyToID("Outline Color");
+        const float OUTLINE_WIDTH = 0.25f;
+        static readonly int OUTLINE_COLOR_ID = Shader.PropertyToID("_OutlineColor");
 
         TextMeshProUGUI _creditText = null!;
         RectTransform? _attachedTo;
-        Material? _outlineMaterial;
 
         internal static CreditDisplayer Create()
         {
@@ -35,7 +33,6 @@ namespace MajdataPlay
 
         void Awake()
         {
-            _outlineMaterial = CreateOutlineMaterial();
             CreditManager.StateChanged += OnStateChanged;
             Localization.OnLanguageChanged += OnLanguageChanged;
         }
@@ -49,10 +46,6 @@ namespace MajdataPlay
             CreditManager.StateChanged -= OnStateChanged;
             Localization.OnLanguageChanged -= OnLanguageChanged;
             DestroyText();
-            if (_outlineMaterial != null)
-            {
-                Destroy(_outlineMaterial);
-            }
         }
 
         void Start() => AttachIfNeeded();
@@ -157,18 +150,18 @@ namespace MajdataPlay
 
             var textObject = new GameObject("CreditText", typeof(RectTransform));
             textObject.transform.SetParent(parent, false);
+            ApplyTopmostSortKey(textObject.AddComponent<Canvas>());
+
             var text = textObject.AddComponent<TextMeshProUGUI>();
             text.font = GameRuntime.Instance.LocalizedFonts.Default;
-            if (_outlineMaterial != null)
-            {
-                text.fontSharedMaterial = _outlineMaterial;
-            }
             text.fontSize = fontSize;
             text.alignment = TextAlignmentOptions.Center;
             text.color = Color.white;
             text.raycastTarget = false;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.overflowMode = TextOverflowModes.Overflow;
+            text.outlineWidth = OUTLINE_WIDTH;
+            text.fontMaterial.SetColor(OUTLINE_COLOR_ID, Color.black);
 
             var rect = text.rectTransform;
             rect.anchorMin = new Vector2(0.5f, 1f);
@@ -180,19 +173,40 @@ namespace MajdataPlay
             return text;
         }
 
-        static Material? CreateOutlineMaterial()
+        static void ApplyTopmostSortKey(Canvas canvas)
         {
-            var font = GameRuntime.Instance.LocalizedFonts.Default;
-            if (font == null)
+            var layers = SortingLayer.layers;
+            var topmostIndex = 0;
+            var topmostOrder = int.MinValue;
+            foreach (var candidate in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
             {
-                return null;
+                if (candidate == null)
+                {
+                    continue;
+                }
+                var index = LayerIndexOf(candidate.sortingLayerID, layers);
+                if (index < topmostIndex || index == topmostIndex && candidate.sortingOrder <= topmostOrder)
+                {
+                    continue;
+                }
+                topmostIndex = index;
+                topmostOrder = candidate.sortingOrder;
             }
-            var material = Instantiate(font.material);
-            material.name = $"{nameof(CreditDisplayer)}_Outline";
-            material.EnableKeyword("OUTLINE_ON");
-            material.SetFloat(OUTLINE_WIDTH_ID, OUTLINE_WIDTH);
-            material.SetColor(OUTLINE_COLOR_ID, Color.black);
-            return material;
+            canvas.overrideSorting = true;
+            canvas.sortingLayerID = layers[topmostIndex].id;
+            canvas.sortingOrder = topmostOrder == int.MinValue ? 0 : topmostOrder + 1;
+        }
+
+        static int LayerIndexOf(int sortingLayerID, SortingLayer[] layers)
+        {
+            for (int i = 0; i < layers.Length; i++)
+            {
+                if (layers[i].id == sortingLayerID)
+                {
+                    return i;
+                }
+            }
+            return 0;
         }
     }
 }
